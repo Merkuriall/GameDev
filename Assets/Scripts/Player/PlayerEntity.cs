@@ -8,20 +8,23 @@ namespace Player
     [RequireComponent(typeof(Rigidbody2D))]
     public class PlayerEntity : MonoBehaviour
     {
+        [SerializeField] private Animator _animator;
+        
         [Header("HorizontalMovement")]
         [SerializeField] private float _horizontalSpeed;
         [SerializeField] private Direction _direction;
 
-        [Header("Jump")]
-        [SerializeField] private float _jumpForce;
-        [SerializeField] private float _gravityScale;
-
+        [Header("Jump")] 
+        private Vector2 _force;
+        
         [SerializeField] private DirectionalCameraPair _cameras;
         
         private Rigidbody2D _rigidbody;
         
         private bool _inAir;
-        private Vector2 _force;
+        
+        private Vector2 _movement;
+        private AnimationType _currentAnimationType;
         private void Start()
         {
             _rigidbody = GetComponent<Rigidbody2D>();
@@ -31,14 +34,24 @@ namespace Player
         {
             if (Input.GetKey(KeyCode.Space) && !_inAir)
             {
-                _force = new Vector2(0, 400);
+                _force = new Vector2(50, 400);
                 _inAir = true;
                 _rigidbody.AddForce(_force);
             }
+
+            UpdateAnimations();
+        }
+
+        private void UpdateAnimations()
+        {
+            PlayAnimation(AnimationType.Idle, true);
+            PlayAnimation(AnimationType.Run, _movement.magnitude > 0);
+            PlayAnimation(AnimationType.Jump, _inAir);
         }
 
         public void MoveHorizontally(float direction)
         {
+            _movement.x = direction;
             SetDirection(direction);
             Vector2 velocity = _rigidbody.velocity;
             velocity.x = direction * _horizontalSpeed;
@@ -71,6 +84,39 @@ namespace Player
                 _inAir = false;
         }
 
+        private void PlayAnimation(AnimationType animationType, bool active)
+        {
+            if (!active)
+            {
+                if (_currentAnimationType == AnimationType.Idle || _currentAnimationType != animationType)
+                    return;
+
+                _currentAnimationType = AnimationType.Idle;
+                PlayAnimation(_currentAnimationType);
+                return;
+            }
+            
+            if(_currentAnimationType >= animationType)
+                return;
+
+            _currentAnimationType = animationType;
+            PlayAnimation(_currentAnimationType);
+        }
+
+        private void PlayAnimation(AnimationType animationType)
+        {
+            _animator.SetInteger(nameof(AnimationType), (int)animationType);
+        }
+
+        public void Jump()
+        {
+            if (!_inAir)
+            {
+                _force = new Vector2(50, 400);
+                _inAir = true;
+                _rigidbody.AddForce(_force);
+            }
+        }
         
     }  
 }
